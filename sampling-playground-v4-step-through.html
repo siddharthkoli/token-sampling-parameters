@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sampling playground (step through)</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f4;--card:#fff;--ink:#17202a;--mute:#6a7684;--line:#d9dfe6;--acc:#2447d6;--acc2:#5b78e8;--cut:#c6ccd4;--hit:#e8590c;--kc:#0d8a6a;--pc:#9b3fc4;--btn:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-theme="dark"]{--bg:#12161c;--card:#1b212a;--ink:#e8ecf1;--mute:#93a0ae;--line:#2d3642;--acc:#6f8bff;--acc2:#4a63c9;--cut:#3a4350;--hit:#ff8a4c;--kc:#3fd0a8;--pc:#d08cff;--btn:#0d1220;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12161c;--card:#1b212a;--ink:#e8ecf1;--mute:#93a0ae;--line:#2d3642;--acc:#6f8bff;--acc2:#4a63c9;--cut:#3a4350;--hit:#ff8a4c;--kc:#3fd0a8;--pc:#d08cff;--btn:#0d1220;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif;padding:20px 16px 48px}
+main{max-width:900px;margin:0 auto;display:grid;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px}
+h1{font-size:1.5rem;margin:0 0 2px;font-weight:600}
+h2{font-size:1rem;margin:0 0 10px;font-weight:600}
+.sub{color:var(--mute);margin:0}
+.sent{font-size:1.6rem;line-height:1.4;font-weight:500}
+.slot{display:inline-block;min-width:3.2ch;border-bottom:3px solid var(--hit);color:var(--hit);text-align:center;padding:0 4px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 13px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--acc)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+button.primary{background:var(--acc);border-color:var(--acc);color:var(--btn);font-weight:600}
+button:disabled{opacity:.45;cursor:not-allowed}
+.sliders{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin-top:14px}
+.sl label{display:flex;justify-content:space-between;font-weight:600}
+.sl output{font-family:"IBM Plex Mono",monospace;color:var(--acc)}
+.sl small{display:block;color:var(--mute);line-height:1.35}
+input[type=range]{width:100%;accent-color:var(--acc);margin:6px 0 2px}
+.stepbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;padding:10px 12px;border:1px dashed var(--line);border-radius:8px}
+.stepbar b{display:block}
+.stepbar .txt{flex:1;min-width:220px}
+.scroll{overflow-x:auto}
+.tbl{min-width:640px}
+.tr{display:grid;grid-template-columns:96px 1.2fr 1.2fr 84px 76px 96px;gap:10px;align-items:center;padding:3px 0;border-bottom:2px solid transparent}
+.tr.h{font-size:.8rem;color:var(--mute);font-weight:600;padding-bottom:6px}
+.tr .n{font-family:"IBM Plex Mono",monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr.off .n{color:var(--mute);text-decoration:line-through}
+.c{display:grid;grid-template-columns:1fr 50px;gap:6px;align-items:center}
+.num{font-family:"IBM Plex Mono",monospace;font-size:.82rem;text-align:right}
+.track{height:16px;background:color-mix(in srgb,var(--line) 45%,transparent);border-radius:4px;overflow:hidden}
+.bar{height:100%;background:var(--acc);border-radius:4px;transition:width .25s}
+.tr.off .bar{background:var(--cut)}
+.tr.off .num{color:var(--mute)}
+.tr .cum{text-align:right}
+.tr.hitp .cum{color:var(--pc);font-weight:600}
+.tr.endk{border-bottom-color:var(--kc)}
+.tr.endp{border-bottom-color:var(--pc)}
+.tr.endk.endp{border-image:linear-gradient(90deg,var(--kc) 50%,var(--pc) 50%) 1}
+.tag{font-size:.7rem;font-family:"IBM Plex Sans",sans-serif;font-weight:600;border-radius:4px;padding:0 5px;margin-left:3px;white-space:nowrap}
+.tag.k{color:var(--kc);border:1px solid var(--kc)}.tag.p{color:var(--pc);border:1px solid var(--pc)}
+.tbl:not(.s1) .col1,.tbl:not(.s3) .col3,.tbl:not(.s4) .col4{visibility:hidden}
+.legend{color:var(--mute);font-size:.85rem;margin:10px 0 0}
+.strip{position:relative;display:flex;height:46px;border-radius:6px;margin:22px 0 8px;background:var(--line)}
+.seg{display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-family:"IBM Plex Mono",monospace;overflow:hidden;white-space:nowrap;border-right:2px solid var(--card)}
+.seg:first-child{border-radius:6px 0 0 6px}.seg:last-child{border-radius:0 6px 6px 0;border-right:0}
+.seg.win{outline:3px solid var(--hit);outline-offset:-3px;z-index:1}
+.mark{position:absolute;top:-12px;bottom:-12px;width:4px;margin-left:-2px;background:var(--hit);border-radius:2px;left:0;opacity:0;transition:left .8s cubic-bezier(.2,.8,.2,1),opacity .2s}
+.note{min-height:1.5em;color:var(--mute);margin:4px 0 12px;font-family:"IBM Plex Mono",monospace;font-size:.88rem}
+.hrow{display:grid;grid-template-columns:96px 1fr 44px;gap:10px;align-items:center;font-size:.88rem;padding:2px 0}
+.hrow .track{position:relative;overflow:visible}
+.hbar{background:var(--hit)}
+.tick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.6}
+@media (max-width:520px){.sent{font-size:1.3rem}}
+@media (prefers-reduced-motion:reduce){.mark,.bar{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>Sampling playground</h1>
+  <p class="sub">Change the settings, watch the candidate set change, then draw one token.</p>
+</header>
+
+<section class="card">
+  <div class="sent" id="sent" aria-live="polite"></div>
+  <div class="row" style="margin-top:12px"><select id="scene" aria-label="Sentence"></select></div>
+</section>
+
+<section class="card">
+  <h2>Settings</h2>
+  <div class="row">
+    <button data-p="greedy">Greedy</button><button data-p="raw">Raw model</button>
+    <button data-p="balanced">Balanced</button><button data-p="wild">Wild</button>
+  </div>
+  <div class="sliders">
+    <div class="sl"><label for="temp">Temperature <output id="tv"></output></label>
+      <input type="range" id="temp" min="0.05" max="2" step="0.05" value="1">
+      <small>Reshapes the probabilities. Low sharpens, high flattens.</small></div>
+    <div class="sl"><label for="topk">Top-k <output id="kv"></output></label>
+      <input type="range" id="topk" min="1" max="15" step="1" value="15">
+      <small>Keep only the k most likely tokens.</small></div>
+    <div class="sl"><label for="topp">Top-p <output id="pv"></output></label>
+      <input type="range" id="topp" min="0.05" max="1" step="0.01" value="1">
+      <small>Keep the fewest tokens whose running total reaches p.</small></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>From model probabilities to candidate set</h2>
+  <div class="stepbar" id="stepbar">
+    <button id="back">Back</button><button id="next" class="primary">Next stage</button>
+    <div class="txt" id="stagetxt"></div>
+  </div>
+  <div class="scroll"><div class="tbl" id="tbl"></div></div>
+  <p class="legend">Running total adds up the temperature-adjusted probabilities from the top. The purple line sits under the token where it first reaches p. The green line sits under the k-th token. Final chance is each survivor’s share after the cut tokens are removed.</p>
+</section>
+
+<section class="card">
+  <h2>The draw</h2>
+  <p class="sub">Surviving tokens sit end to end, each slice as wide as its final chance. A random point lands somewhere on the strip.</p>
+  <div class="strip" id="strip"></div>
+  <div class="note" id="note"></div>
+  <div class="row">
+    <button class="primary" id="draw">Draw a token</button>
+    <button id="many">Sample 100 times</button>
+  </div>
+  <div id="hist" style="margin-top:14px"></div>
+</section>
+</main>
+
+<script>
+const MODE="step";
+const SCENES=[
+ {start:"The cat sat on the",raw:[["mat",30],["floor",14],["couch",11],["sofa",8],["bed",7],["roof",5],["windowsill",4],["table",3.5],["chair",3],["grass",2.5],["moon",1.2],["zebra",.6],["banana",.4],["quantum",.3],["purple",.2]]},
+ {start:"I would like a cup of",raw:[["coffee",34],["tea",26],["water",10],["milk",7],["cocoa",5],["juice",4],["soup",3.5],["broth",2.5],["wine",2],["cider",1.5],["sand",.7],["thunder",.5],["laptop",.4],["Tuesday",.3],["gravel",.2]]},
+ {start:"The capital of France is",raw:[["Paris",62],["a",6],["the",5],["located",4],["known",3.5],["Lyon",3],["beautiful",2.5],["France",2],["Berlin",1.8],["Marseille",1.5],["London",1.2],["banana",.7],["zebra",.5],["quantum",.3],["purple",.2]]},
+ {start:"She opened the door and saw a",raw:[["man",18],["dog",13],["light",11],["room",9],["child",8],["cat",7],["figure",6],["crowd",5],["stranger",4.5],["table",3.5],["garden",3],["ghost",2.5],["spoon",.8],["zebra",.5],["quantum",.3]]}
+];
+const PRESETS={greedy:[0.05,1,1],raw:[1,15,1],balanced:[1,10,0.9],wild:[1.8,15,1]};
+const STAGES=["Original: the model’s own probabilities.","Temperature: probabilities reshaped. Low sharpens, high flattens.","Top-k: every token below rank k is cut.","Top-p: read the running total. Keep tokens until it reaches p, cut the rest.","Renormalize: survivors are rescaled to add up to 100%. This is what the draw uses."];
+const $=id=>document.getElementById(id);
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const pct1=x=>(x*100).toFixed(1)+"%";
+const pct=x=>(x>0&&x<.1?(x*100).toFixed(1):Math.round(x*100))+"%";
+let scene=0,stage=MODE==="all"?4:0,rows=[],busy=false,picked=null;
+
+function compute(){
+  const T=+$("temp").value,K=+$("topk").value,P=+$("topp").value;
+  const raw=SCENES[scene].raw,s0=sum(raw.map(r=>r[1]));
+  const base=raw.map(r=>({t:r[0],p:r[1]/s0})).sort((a,b)=>b.p-a.p);
+  const l=base.map(x=>Math.log(x.p)/T),m=Math.max(...l),e=l.map(v=>Math.exp(v-m)),s=sum(e);
+  rows=base.map((x,i)=>({t:x.t,p0:x.p,pt:e[i]/s}));
+  let c=0,pc=rows.length;
+  rows.forEach(r=>{c+=r.pt;r.cum=c;});
+  for(let i=0;i<rows.length;i++){if(rows[i].cum>=P-1e-9){pc=i+1;break;}}
+  rows.forEach((r,i)=>{r.okK=i<K;r.okP=i<pc;r.keep=r.okK&&r.okP;});
+  const ks=sum(rows.filter(r=>r.keep).map(r=>r.pt));
+  rows.forEach(r=>{r.pf=r.keep?r.pt/ks:0;});
+  rows.K=K<rows.length?K:0;rows.pc=P<1?pc:0;
+  $("tv").textContent=T.toFixed(2);$("kv").textContent=K>=rows.length?"off":K;$("pv").textContent=P>=1?"off":P.toFixed(2);
+}
+
+function render(){
+  compute();
+  const mx=1;
+  const bar=v=>`<div class="c"><div class="track"><div class="bar" style="width:${v/mx*100}%"></div></div><span class="num">${pct1(v)}</span></div>`;
+  let h=`<div class="tr h"><span>Token</span><span>Original</span><span class="col1">After temperature</span><span class="col3 cum">Running total</span><span class="col4 num" style="font-family:inherit">Final chance</span><span></span></div>`;
+  rows.forEach((r,i)=>{
+    const off=(stage>=2&&!r.okK)||(stage>=3&&!r.okP);
+    const endk=stage>=2&&rows.K&&i===rows.K-1,endp=stage>=3&&rows.pc&&i===rows.pc-1;
+    h+=`<div class="tr${off?" off":""}${endk?" endk":""}${endp?" endp hitp":""}"><span class="n">${r.t}</span>
+    <div>${bar(r.p0)}</div><div class="col1">${bar(r.pt)}</div>
+    <span class="num cum col3">${pct1(r.cum)}</span>
+    <span class="num col4">${stage>=4&&r.keep?pct1(r.pf):""}</span>
+    <span>${endk?'<span class="tag k">k line</span>':""}${endp?'<span class="tag p">p line</span>':""}</span></div>`;});
+  $("tbl").innerHTML=h;
+  $("tbl").className="tbl "+[1,2,3,4].filter(n=>stage>=n).map(n=>"s"+n).join(" ");
+  const kept=rows.filter(r=>r.keep);
+  $("strip").innerHTML=kept.map((r,i)=>`<div class="seg" data-t="${r.t}" style="width:${r.pf*100}%;background:${i%2?"var(--acc2)":"var(--acc)"}">${r.pf>0.06?r.t:""}</div>`).join("")+'<div class="mark" id="mark"></div>';
+  $("hist").innerHTML="";
+  $("stagetxt").innerHTML=`<b>Stage ${stage+1} of 5</b>${STAGES[stage]}`;
+  $("back").disabled=stage===0;$("next").disabled=stage===4;
+  const ok=stage===4;$("draw").disabled=$("many").disabled=!ok;
+  if(!ok)$("note").textContent="Step through to the last stage to draw.";
+  else if($("note").textContent.startsWith("Step"))$("note").textContent="";
+}
+
+function renderSent(){
+  const sc=SCENES[scene];
+  $("sent").innerHTML=sc.start+" "+(picked?`<span class="slot">${picked}</span>`:'<span class="slot">&nbsp;&nbsp;&nbsp;</span>');
+}
+function pickFrom(u){let c=0;const k=rows.filter(r=>r.keep);for(const r of k){c+=r.pf;if(u<c)return r;}return k[k.length-1];}
+
+$("draw").onclick=()=>{
+  if(busy)return;busy=true;
+  document.querySelectorAll(".seg.win").forEach(s=>s.classList.remove("win"));
+  picked=null;renderSent();
+  const u=Math.random(),win=pickFrom(u),mark=$("mark");
+  mark.style.transition="none";mark.style.left="0";mark.style.opacity=0;void mark.offsetWidth;mark.style.transition="";
+  mark.style.opacity=1;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{mark.style.left=(u*100)+"%";}));
+  $("note").textContent="Random point: "+u.toFixed(3)+"…";
+  setTimeout(()=>{
+    document.querySelectorAll(".seg").forEach(s=>{if(s.dataset.t===win.t)s.classList.add("win");});
+    picked=win.t;renderSent();busy=false;
+    $("note").textContent=`Random point ${u.toFixed(3)} landed on “${win.t}” (${pct(win.pf)} chance). Draw again to re-roll.`;
+  },850);
+};
+$("many").onclick=()=>{
+  const kept=rows.filter(r=>r.keep),cnt={};kept.forEach(r=>cnt[r.t]=0);
+  for(let i=0;i<100;i++)cnt[pickFrom(Math.random()).t]++;
+  const sc=Math.max(...kept.map(r=>Math.max(cnt[r.t],r.pf*100)),1);
+  $("hist").innerHTML="<h2>100 draws</h2>"+kept.map(r=>`<div class="hrow"><span class="n">${r.t}</span>
+  <div class="track"><div class="bar hbar" style="width:${cnt[r.t]/sc*100}%"></div><div class="tick" style="left:${Math.min(r.pf*100/sc*100,99.5)}%"></div></div>
+  <span class="num">${cnt[r.t]}</span></div>`).join("")+'<p class="legend">Bars are actual counts. The tick is the expected count. Press again to see the counts wobble around it.</p>';
+};
+document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{const[a,k,p]=PRESETS[b.dataset.p];$("temp").value=a;$("topk").value=k;$("topp").value=p;render();});
+["temp","topk","topp"].forEach(id=>$(id).oninput=render);
+$("next").onclick=()=>{stage=Math.min(4,stage+1);render();};
+$("back").onclick=()=>{stage=Math.max(0,stage-1);render();};
+SCENES.forEach((s,i)=>$("scene").add(new Option(s.start+"…",i)));
+$("scene").onchange=e=>{scene=+e.target.value;picked=null;$("note").textContent="";renderSent();render();};
+if(MODE==="all")$("stepbar").hidden=true;
+renderSent();render();
+</script>
+</body>
+</html>
